@@ -7,14 +7,16 @@ public class Materials {
     private int quantity;
     private LocalDateTime date_added;
     private String serialNumber;
+    private Boolean sold;
 
 
-    public Materials(String name, double price, int quantity, LocalDateTime date_added , String serialNumber) {
+    public Materials(String name, double price, int quantity, LocalDateTime date_added , String serialNumber , Boolean sold) {
         this.name = name;
         this.price = price;
         this.quantity = quantity;
         this.date_added = date_added;
         this.serialNumber = serialNumber;
+        this.sold = sold;
 
     }
     public int getId() {
@@ -56,5 +58,13 @@ public class Materials {
 
     public void setSerialNumber(String serialNumber) {
         this.serialNumber = serialNumber;
+    }
+
+    public Boolean getSold() {
+        return sold;
+    }
+
+    public void setSold(Boolean sold) {
+        this.sold = sold;
     }
 }

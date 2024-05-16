@@ -25,11 +25,12 @@ public class Provider extends User{
             switch (choice){
                 case 1 :
                     System.out.println("Here is the list of materials for providing:");
+                    manager.listNeedMaterials();
                     manager.listMaterials();
                     break;
                 case 2 :
                     System.out.println("Here is the quantity of materials:");
-                    manager.countMaterials();
+                    manager.displayTotalQuantity();
                     break;
                 case 3 :
                     System.out.println("Here is the material with the highest quantity of orders for delivery");

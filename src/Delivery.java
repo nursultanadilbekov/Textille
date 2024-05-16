@@ -27,23 +27,21 @@ public class Delivery extends User{
             choice = scanner.nextInt();
             switch (choice){
                 case 1 :
-                    System.out.println("Here is the list of materials for delivering");
+                    System.out.println("Here is the list of materials for delivering:");
+                    manager.listSoldMaterials();
                     break;
                 case 2 :
                     System.out.println("Here is the list of delivered materials:");
-
+                    manager.listOfDeliveredMaterials();
                     break;
                 case 3 :
                     System.out.println("Enter the name");
                     String materialName = scanner.nextLine();
-                    System.out.println("Enter the quantity of material");
-                    int materialQuantity = scanner.nextInt();
-                    Boolean sold = false ;
-                    int price  = 0;
-                    addMaterial(materialName  ,price ,  materialQuantity , sold);
+                    manager.DeliveredMaterials(materialName);
                     break;
                 case 4 :
                     System.out.println("Here is your income:");
+                    manager.printTotalIncome();
                     break;
                 case 5:
                     System.out.println("Exiting...............");

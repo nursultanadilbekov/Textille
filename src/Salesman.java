@@ -62,14 +62,19 @@ public class Salesman extends User{
                     manager.saleMaterialById(materialId,numberOfMaterial);
                     break;
                 case 5:
+                    System.out.println("Missed materials:");
+                    manager.displayMissedMaterials();
                     scanner.nextLine();
                     System.out.println("Provide  the missing material name:");
                     String materialName  = scanner.nextLine();
                     System.out.println("Provide the missing material quantity:");
                     int materialQuantity = scanner.nextInt();
+                    manager.makeOrderForUnavailableMaterials(materialName,materialQuantity);
                     break;
                 case 6:
                     System.out.println("Provide material order id to delete it:");
+                    int matrerialId = scanner.nextInt();
+                    manager.deleteOrderById(matrerialId);
                     break;
                 case 7:
                     System.out.println("Exiting....");

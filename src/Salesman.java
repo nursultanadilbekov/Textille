@@ -57,7 +57,7 @@ public class Salesman extends User{
                 case 4 :
                     System.out.println("Provide material id that you want to sale:");
                     int materialId = scanner.nextInt();
-                    System.out.println("Provide the missing material quantity:");
+                    System.out.println("Provide the material quantity:");
                     int numberOfMaterial = scanner.nextInt();
                     manager.saleMaterialById(materialId,numberOfMaterial);
                     break;
@@ -69,6 +69,7 @@ public class Salesman extends User{
                     String materialName  = scanner.nextLine();
                     System.out.println("Provide the missing material quantity:");
                     int materialQuantity = scanner.nextInt();
+                    scanner.nextLine();
                     manager.makeOrderForUnavailableMaterials(materialName,materialQuantity);
                     break;
                 case 6:
@@ -84,7 +85,7 @@ public class Salesman extends User{
                     System.out.println("Invalid option. Please choose again.");
                     break;
             }
-        }while(choice<=1 || choice>4);
+        }while(choice<1 || choice>7);
         return choice;
     }
 }

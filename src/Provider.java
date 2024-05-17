@@ -26,7 +26,6 @@ public class Provider extends User{
                 case 1 :
                     System.out.println("Here is the list of materials for providing:");
                     manager.listNeedMaterials();
-                    manager.listMaterials();
                     break;
                 case 2 :
                     System.out.println("Here is the quantity of materials:");
@@ -48,7 +47,7 @@ public class Provider extends User{
                     System.out.println("Invalid option. Please choose again.");
                     break;
             }
-        }while(choice<=1 || choice>4);
+        }while(choice<1 || choice>4);
         return choice;
     }
 }

@@ -1,16 +1,10 @@
 
-
-import javax.xml.transform.Result;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 
 import java.sql.*;
-import java.time.format.DateTimeFormatter;
-import java.util.Scanner;
 
 public class DatabaseManager {
-
 
 
     public boolean login(String username, String password) {
@@ -53,6 +47,7 @@ public class DatabaseManager {
             return false;
         }
     }
+
     public void listMaterials() {
         try {
             String query = "SELECT * FROM materialsforsales";
@@ -119,52 +114,112 @@ public class DatabaseManager {
             return null;
         }
     }
-    public int countMaterials() {
-        try {
-            String query = "SELECT COUNT(*) AS material_count FROM materialsforsales";
-            PreparedStatement stmt =  MyJDBC.getConnection().prepareStatement(query);
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                return rs.getInt("material_count");
-            } else {
-                return 0; // Return 0 if no result is found
+
+    public void listSoldMaterials() {
+        try (Connection connection = MyJDBC.getConnection()) {
+            String query = "SELECT id, name, date_added, price, soldquantity FROM materialsforsales WHERE soldquantity > 0";
+            PreparedStatement statement = connection.prepareStatement(query);
+            ResultSet resultSet = statement.executeQuery();
+
+            System.out.println("Items with sold quantity greater than 0:");
+            System.out.printf("%-5s%-15s%-12s%-10s%-12s\n", "ID", "Name", "Date Added", "Price", "Sold Quantity");
+            while (resultSet.next()) {
+                int id = resultSet.getInt("id");
+                String name = resultSet.getString("name");
+                String dateAdded = resultSet.getString("date_added");
+                double price = resultSet.getDouble("price");
+                int soldQuantity = resultSet.getInt("soldquantity");
+                System.out.printf("%-5d%-15s%-12s%-10.2f%-12d\n", id, name, dateAdded, price, soldQuantity);
             }
         } catch (SQLException e) {
             e.printStackTrace();
-            return -1; // Return -1 to indicate an error occurred
         }
     }
 
-
-    public void listSoldMaterials() {
+    public boolean saleMaterialById(int materialId, int quantity) {
+        Connection conn = null;
+        PreparedStatement updateStmt = null;
         try {
-            String query = "SELECT id ,name ,date_added ,price, quantity  FROM soldmaterials"
-                      ;
-            PreparedStatement stmt =  MyJDBC.getConnection().prepareStatement(query);
+            conn = MyJDBC.getConnection();
+            conn.setAutoCommit(false);
 
-            ResultSet resultSet = stmt.executeQuery();
-            System.out.printf("%-5s%-15s%-12s%-10s%-8s\n", "ID", "Name", "Date Added", "Price", "Quantity Sold");
+            String updateQuery = "UPDATE materialsforsales SET quantity = quantity - ?, soldquantity = soldquantity + ? WHERE id = ?";
+            updateStmt = conn.prepareStatement(updateQuery);
+            updateStmt.setInt(1, quantity);
+            updateStmt.setInt(2, quantity);
+            updateStmt.setInt(3, materialId);
+            int rowsUpdated = updateStmt.executeUpdate();
+
+            if (rowsUpdated > 0) {
+                System.out.println("Material with ID " + materialId + " successfully sold. Quantity updated.");
+                conn.commit();
+                return true;
+            } else {
+                System.out.println("No rows updated. Sale operation failed.");
+                conn.rollback();
+                return false;
+            }
+        } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
+            e.printStackTrace();
+            return false;
+        } finally {
+            if (updateStmt != null) {
+                try {
+                    updateStmt.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    public void displayMissedMaterials() {
+        try (Connection connection = MyJDBC.getConnection();) {
+            String selectQuery = "SELECT * FROM materialsforsales where quantity < 1";
+            PreparedStatement selectStmt = connection.prepareStatement(selectQuery);
+            ResultSet resultSet = selectStmt.executeQuery();
+
+            System.out.println("ID | Name | Date Added | Price | Quantity");
+
             while (resultSet.next()) {
                 int id = resultSet.getInt("id");
                 String name = resultSet.getString("name");
                 String dateAdded = resultSet.getString("date_added");
                 double price = resultSet.getDouble("price");
                 int quantity = resultSet.getInt("quantity");
-                System.out.printf("%-5d%-15s%-12s%-10.2f%-8d\n", id, name, dateAdded, price, quantity);
+
+                System.out.println(id + " | " + name + " | " + dateAdded + " | " + price + " | " + quantity);
             }
+            resultSet.close();
+            selectStmt.close();
+
+            System.out.println("Missed materials successfully displayed.");
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
+
     public static void makeOrderForUnavailableMaterials(String materialName, int quantity) {
         try (Connection connection = MyJDBC.getConnection();) {
-            // Check if the material is available in the missedmaterials table
-            String checkAvailabilityQuery = "SELECT quantity FROM missedmaterials WHERE name = ?";
+            String checkAvailabilityQuery = "SELECT quantity FROM materialsforsales WHERE name = ?";
             try (PreparedStatement checkStmt = connection.prepareStatement(checkAvailabilityQuery)) {
                 checkStmt.setString(1, materialName);
                 ResultSet resultSet = checkStmt.executeQuery();
                 if (resultSet.next()) {
-                    // Material is available in missedmaterials table, insert into needmaterials table
                     int availableQuantity = resultSet.getInt("quantity");
                     String insertQuery = "INSERT INTO needmaterials (name, quantity) VALUES (?, ?)";
                     try (PreparedStatement insertStmt = connection.prepareStatement(insertQuery)) {
@@ -182,101 +237,12 @@ public class DatabaseManager {
         }
     }
 
-
-    public void displayMissedMaterials() {
-        try (Connection connection = MyJDBC.getConnection();) {
-            // SQL query to select all rows from missedmaterials table
-            String selectQuery = "SELECT * FROM missedmaterials";
-
-            PreparedStatement selectStmt = connection.prepareStatement(selectQuery);
-            ResultSet resultSet = selectStmt.executeQuery();
-
-            // Print the header
-            System.out.println("ID | Name | Date Added | Price | Quantity");
-
-            // Iterate over the result set and print each row
-            while (resultSet.next()) {
-                int id = resultSet.getInt("id");
-                String name = resultSet.getString("name");
-                String dateAdded = resultSet.getString("date_added");
-                double price = resultSet.getDouble("price");
-                int quantity = resultSet.getInt("quantity");
-
-                // Print the row
-                System.out.println(id + " | " + name + " | " + dateAdded + " | " + price + " | " + quantity);
-            }
-
-            // Close resources
-            resultSet.close();
-            selectStmt.close();
-
-            System.out.println("Missed materials successfully displayed.");
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-
-    public static void sleep() {
-        try {
-            Thread.sleep(3000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void exit(){
-        System.out.println("Program finished, we will be glad to see you again!");
-        System.exit(0);
-    }
-    public boolean saleMaterialById(int materialId, int quantity) {
-        try {
-            // Insert the sold material into the soldMaterials table
-            String insertQuery = "INSERT INTO soldmaterials (material_Id, name, date_added, price, quantity) " +
-                    "SELECT id, name, date_added, price, ? FROM materialsforsales WHERE id = ?";
-            PreparedStatement insertStmt = MyJDBC.getConnection().prepareStatement(insertQuery);
-            insertStmt.setInt(1, quantity);
-            insertStmt.setInt(2, materialId);
-            int rowsInserted = insertStmt.executeUpdate();
-
-            if (rowsInserted > 0) {
-                // Successfully inserted the sale record
-                System.out.println("Material with ID " + materialId + " successfully sold.");
-
-                // Update the quantity of materialsForSales with remaining quantity
-                String updateQuery = "UPDATE materialsforsales SET quantity = quantity - ? WHERE id = ?";
-                PreparedStatement updateStmt = MyJDBC.getConnection().prepareStatement(updateQuery);
-                updateStmt.setInt(1, quantity);
-                updateStmt.setInt(2, materialId);
-                int rowsUpdated = updateStmt.executeUpdate();
-
-                if (rowsUpdated > 0) {
-                    System.out.println("Material quantity updated successfully.");
-                    return true;
-                } else {
-                    System.out.println("Failed to update remaining quantity. Sale operation failed.");
-                    return false;
-                }
-            } else {
-                System.out.println("Failed to insert sold material. Sale operation failed.");
-                return false;
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-
     public void deleteOrderById(int orderId) {
         try (Connection connection = MyJDBC.getConnection()) {
-            // Prepare the SQL statement to delete the row with the specified ID
             String deleteQuery = "DELETE FROM needmaterials WHERE id = ?";
             try (PreparedStatement deleteStmt = connection.prepareStatement(deleteQuery)) {
-                // Set the ID parameter for the delete statement
                 deleteStmt.setInt(1, orderId);
-                // Execute the delete statement
                 int rowsDeleted = deleteStmt.executeUpdate();
-                // Check if any rows were deleted
                 if (rowsDeleted > 0) {
                     System.out.println("Order with ID " + orderId + " successfully deleted.");
                 } else {
@@ -287,6 +253,7 @@ public class DatabaseManager {
             e.printStackTrace();
         }
     }
+
     public void listOfDeliveredMaterials() {
         try {
             String query = "SELECT * FROM deliveredmaterials";
@@ -308,18 +275,16 @@ public class DatabaseManager {
     }
     public static void DeliveredMaterials(String materialName) {
         try (Connection connection = MyJDBC.getConnection();) {
-            // Check if the material is available in the missedmaterials table
             String checkAvailabilityQuery = "SELECT quantity FROM soldmaterials WHERE name = ?";
             try (PreparedStatement checkStmt = connection.prepareStatement(checkAvailabilityQuery)) {
                 checkStmt.setString(1, materialName);
                 ResultSet resultSet = checkStmt.executeQuery();
                 if (resultSet.next()) {
-                    // Material is available in missedmaterials table, insert entire available quantity into needmaterials table
                     int availableQuantity = resultSet.getInt("quantity");
                     String insertQuery = "INSERT INTO deliveredmaterials (name, quantity) VALUES (?, ?)";
                     try (PreparedStatement insertStmt = connection.prepareStatement(insertQuery)) {
                         insertStmt.setString(1, materialName);
-                        insertStmt.setInt(2, availableQuantity); // Insert the entire available quantity
+                        insertStmt.setInt(2, availableQuantity);
                         insertStmt.executeUpdate();
                         System.out.println("Order placed successfully for " + availableQuantity + " units of " + materialName);
                     }
@@ -334,18 +299,14 @@ public class DatabaseManager {
     public static void printTotalIncome() {
         double totalIncome = 0.0;
         try (Connection connection = MyJDBC.getConnection();) {
-            // Query to select all materials and their quantities from the deliveredmaterials table
             String selectQuery = "SELECT quantity FROM deliveredmaterials";
             try (PreparedStatement selectStmt = connection.prepareStatement(selectQuery)) {
                 ResultSet resultSet = selectStmt.executeQuery();
                 while (resultSet.next()) {
-                    // Retrieve quantity for each material
                     int quantity = resultSet.getInt("quantity");
-                    // Calculate income for each material and add it to the total income
-                    totalIncome += quantity * 20.0; // Each unit costs $20
+                    totalIncome += quantity * 20.0;
                 }
             }
-            // Print the total income
             System.out.println("Total income: $" + totalIncome);
         } catch (SQLException e) {
             e.printStackTrace();
@@ -353,7 +314,7 @@ public class DatabaseManager {
     }
     public void listNeedMaterials() {
         try {
-            String query = "SELECT * FROM needmaterials";
+            String query = "SELECT id, name, quantity FROM needmaterials";
 
             PreparedStatement stmt = MyJDBC.getConnection().prepareStatement(query);
 
@@ -361,15 +322,14 @@ public class DatabaseManager {
             while (resultSet.next()) {
                 int id = resultSet.getInt("id");
                 String name = resultSet.getString("name");
-                String dateAdded = resultSet.getString("date_added");
-                double price = resultSet.getDouble("price");
                 int quantity = resultSet.getInt("quantity");
-                System.out.printf("%-5d%-15s%-12s%-10.2f%-8d\n", id, name, dateAdded, price, quantity);
+                System.out.printf("%-5d%-15s%-8d\n", id, name, quantity);
             }
-        } catch (Exception e) {
-
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
+
     public void displayTotalQuantity() {
         try {
             String query = "SELECT SUM(quantity) AS total_quantity FROM needmaterials";
@@ -386,84 +346,63 @@ public class DatabaseManager {
         }
     }
     public void displayHighestQuantityMaterial() {
-        try {
-            // Query to select the record with the highest quantity
-            String query = "SELECT id, name, quantity FROM soldmaterials ORDER BY quantity DESC LIMIT 1";
+        try (Connection connection = MyJDBC.getConnection()) {
+            String query = "SELECT id, name, date_added, price, soldquantity FROM materialsforsales WHERE soldquantity > 0 ORDER BY soldquantity DESC LIMIT 1";
+            PreparedStatement statement = connection.prepareStatement(query);
+            ResultSet resultSet = statement.executeQuery();
 
-            // Establish connection and create PreparedStatement
-            Connection connection = MyJDBC.getConnection();
-            PreparedStatement stmt = connection.prepareStatement(query);
-
-            // Execute the query and get the result set
-            ResultSet resultSet = stmt.executeQuery();
-
-            // Check if there is at least one record
+            System.out.println("Material with the highest sold quantity:");
+            System.out.printf("%-5s%-15s%-12s%-10s%-12s\n", "ID", "Name", "Date Added", "Price", "Sold Quantity");
             if (resultSet.next()) {
-                // Retrieve data from the result set
                 int id = resultSet.getInt("id");
                 String name = resultSet.getString("name");
-                int quantity = resultSet.getInt("quantity");
-
-                // Display the material with the highest quantity in a table format
-                System.out.println("+----+----------------------+----------+");
-                System.out.println("| ID | Name                 | Quantity |");
-                System.out.println("+----+----------------------+----------+");
-                System.out.printf("| %-2d | %-20s | %-8d |\n", id, name, quantity);
-                System.out.println("+----+----------------------+----------+");
+                String dateAdded = resultSet.getString("date_added");
+                double price = resultSet.getDouble("price");
+                int soldQuantity = resultSet.getInt("soldquantity");
+                System.out.printf("%-5d%-15s%-12s%-10.2f%-12d\n", id, name, dateAdded, price, soldQuantity);
             } else {
-                System.out.println("No materials found in the soldmaterials table.");
+                System.out.println("No material with sold quantity greater than 0 found.");
             }
-
-            // Close resources
-            resultSet.close();
-            stmt.close();
-            connection.close();
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
+
 
     public void displayLowestQuantityMaterial() {
-        try {
-            // Query to select the record with the lowest quantity
-            String query = "SELECT id, name, quantity FROM soldmaterials ORDER BY quantity ASC LIMIT 1";
+        try (Connection connection = MyJDBC.getConnection()) {
+            String query = "SELECT id, name, date_added, price, soldquantity FROM materialsforsales WHERE soldquantity > 0 ORDER BY soldquantity ASC LIMIT 1";
+            PreparedStatement statement = connection.prepareStatement(query);
+            ResultSet resultSet = statement.executeQuery();
 
-            // Establish connection and create PreparedStatement
-            Connection connection = MyJDBC.getConnection();
-            PreparedStatement stmt = connection.prepareStatement(query);
-
-            // Execute the query and get the result set
-            ResultSet resultSet = stmt.executeQuery();
-
-            // Check if there is at least one record
+            System.out.println("Material with the lowest sold quantity:");
+            System.out.printf("%-5s%-15s%-12s%-10s%-12s\n", "ID", "Name", "Date Added", "Price", "Sold Quantity");
             if (resultSet.next()) {
-                // Retrieve data from the result set
                 int id = resultSet.getInt("id");
                 String name = resultSet.getString("name");
-                int quantity = resultSet.getInt("quantity");
-
-                // Display the material with the lowest quantity in a table format
-                System.out.println("+----+----------------------+----------+");
-                System.out.println("| ID | Name                 | Quantity |");
-                System.out.println("+----+----------------------+----------+");
-                System.out.printf("| %-2d | %-20s | %-8d |\n", id, name, quantity);
-                System.out.println("+----+----------------------+----------+");
+                String dateAdded = resultSet.getString("date_added");
+                double price = resultSet.getDouble("price");
+                int soldQuantity = resultSet.getInt("soldquantity");
+                System.out.printf("%-5d%-15s%-12s%-10.2f%-12d\n", id, name, dateAdded, price, soldQuantity);
             } else {
-                System.out.println("No materials found in the soldmaterials table.");
+                System.out.println("No material with sold quantity greater than 0 found.");
             }
-
-            // Close resources
-            resultSet.close();
-            stmt.close();
-            connection.close();
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
+    public static void sleep() {
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
 
-    // Дополнительные методы для работы с данными...
+    public void exit(){
+        System.out.println("Program finished, we will be glad to see you again!");
+        System.exit(0);
+    }
 }
 
 

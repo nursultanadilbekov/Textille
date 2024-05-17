@@ -12,7 +12,7 @@ public class Provider extends User{
         do{
             System.out.println();
             System.out.println("Please choose one of the options below , if you want to exit choose number 5 ");
-            System.out.println("1.Show list of materials for providing\n 2. Show quantity of materials\n3.Show the material with highest quantity of orders for delivery\n4.Show material with lowest quantity of orders for delivery\n5.Exit");
+            System.out.println("1.Show list of materials for providing\n2. Show quantity of materials\n3.Show the material with highest quantity of orders for delivery\n4.Show material with lowest quantity of orders for delivery\n5.Exit");
             choice = getChoice();
             manager.sleep();
         }while(choice!=5);
@@ -34,9 +34,11 @@ public class Provider extends User{
                     break;
                 case 3 :
                     System.out.println("Here is the material with the highest quantity of orders for delivery");
+                    manager.displayHighestQuantityMaterial();
                     break;
                 case 4 :
                     System.out.println("Here is the material with the lowest quantity of orders for delivery ");
+                    manager.displayLowestQuantityMaterial();
                     break;
                 case 5:
                     System.out.println("Exiting...............");

@@ -232,7 +232,7 @@ public class DatabaseManager {
     public boolean saleMaterialById(int materialId, int quantity) {
         try {
             // Insert the sold material into the soldMaterials table
-            String insertQuery = "INSERT INTO soldmaterials (id, name, date_added, price, quantity) " +
+            String insertQuery = "INSERT INTO soldmaterials (material_Id, name, date_added, price, quantity) " +
                     "SELECT id, name, date_added, price, ? FROM materialsforsales WHERE id = ?";
             PreparedStatement insertStmt = MyJDBC.getConnection().prepareStatement(insertQuery);
             insertStmt.setInt(1, quantity);
@@ -382,6 +382,83 @@ public class DatabaseManager {
                 System.out.println("Total Quantity: " + totalQuantity);
             }
         } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    public void displayHighestQuantityMaterial() {
+        try {
+            // Query to select the record with the highest quantity
+            String query = "SELECT id, name, quantity FROM soldmaterials ORDER BY quantity DESC LIMIT 1";
+
+            // Establish connection and create PreparedStatement
+            Connection connection = MyJDBC.getConnection();
+            PreparedStatement stmt = connection.prepareStatement(query);
+
+            // Execute the query and get the result set
+            ResultSet resultSet = stmt.executeQuery();
+
+            // Check if there is at least one record
+            if (resultSet.next()) {
+                // Retrieve data from the result set
+                int id = resultSet.getInt("id");
+                String name = resultSet.getString("name");
+                int quantity = resultSet.getInt("quantity");
+
+                // Display the material with the highest quantity in a table format
+                System.out.println("+----+----------------------+----------+");
+                System.out.println("| ID | Name                 | Quantity |");
+                System.out.println("+----+----------------------+----------+");
+                System.out.printf("| %-2d | %-20s | %-8d |\n", id, name, quantity);
+                System.out.println("+----+----------------------+----------+");
+            } else {
+                System.out.println("No materials found in the soldmaterials table.");
+            }
+
+            // Close resources
+            resultSet.close();
+            stmt.close();
+            connection.close();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void displayLowestQuantityMaterial() {
+        try {
+            // Query to select the record with the lowest quantity
+            String query = "SELECT id, name, quantity FROM soldmaterials ORDER BY quantity ASC LIMIT 1";
+
+            // Establish connection and create PreparedStatement
+            Connection connection = MyJDBC.getConnection();
+            PreparedStatement stmt = connection.prepareStatement(query);
+
+            // Execute the query and get the result set
+            ResultSet resultSet = stmt.executeQuery();
+
+            // Check if there is at least one record
+            if (resultSet.next()) {
+                // Retrieve data from the result set
+                int id = resultSet.getInt("id");
+                String name = resultSet.getString("name");
+                int quantity = resultSet.getInt("quantity");
+
+                // Display the material with the lowest quantity in a table format
+                System.out.println("+----+----------------------+----------+");
+                System.out.println("| ID | Name                 | Quantity |");
+                System.out.println("+----+----------------------+----------+");
+                System.out.printf("| %-2d | %-20s | %-8d |\n", id, name, quantity);
+                System.out.println("+----+----------------------+----------+");
+            } else {
+                System.out.println("No materials found in the soldmaterials table.");
+            }
+
+            // Close resources
+            resultSet.close();
+            stmt.close();
+            connection.close();
+
+        } catch (SQLException e) {
             e.printStackTrace();
         }
     }

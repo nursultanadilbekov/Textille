@@ -15,7 +15,7 @@ public class Delivery extends User{
         do{
             System.out.println();
             System.out.println("Please choose one of the options below , if you want to exit choose number 5 ");
-            System.out.println("1.Show list of materials for delivery\n 2. Show list of the delivered materials \n3.Deliver order \n4.Show my income\n5.Exit");
+            System.out.println("1.Show list of materials for delivery\n2. Show list of the delivered materials \n3.Deliver order \n4.Show my income\n5.Exit");
             choice = getChoice();
             manager.sleep();
         }while(choice!=5);

@@ -20,7 +20,7 @@ public class DatabaseManager {
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
                 String role = rs.getString("role");
-                System.out.println("Вы вошли как " + role);
+                System.out.println("You entered as " + role);
                 switch (role) {
                     case "salesman":
                         Salesman salesman = new Salesman(username , password);
@@ -35,7 +35,7 @@ public class DatabaseManager {
                         provider.displayOptions();
                         break;
                     default:
-                        System.out.println("Неизвестная роль: " + role);
+                        System.out.println("Unknown role: " + role);
                         break;
                 }
                 return true;
@@ -121,7 +121,7 @@ public class DatabaseManager {
             PreparedStatement statement = connection.prepareStatement(query);
             ResultSet resultSet = statement.executeQuery();
 
-            System.out.println("Items with sold quantity greater than 0:");
+            System.out.println("Sold items:");
             System.out.printf("%-5s%-15s%-12s%-10s%-12s\n", "ID", "Name", "Date Added", "Price", "Sold Quantity");
             while (resultSet.next()) {
                 int id = resultSet.getInt("id");
@@ -151,11 +151,11 @@ public class DatabaseManager {
             int rowsUpdated = updateStmt.executeUpdate();
 
             if (rowsUpdated > 0) {
-                System.out.println("Material with ID " + materialId + " successfully sold. Quantity updated.");
+                System.out.println("Material with ID " + materialId + " successfully sold.");
                 conn.commit();
                 return true;
             } else {
-                System.out.println("No rows updated. Sale operation failed.");
+                System.out.println("Sale operation failed.");
                 conn.rollback();
                 return false;
             }
@@ -274,28 +274,39 @@ public class DatabaseManager {
         }
     }
     public static void DeliveredMaterials(String materialName) {
-        try (Connection connection = MyJDBC.getConnection();) {
-            String checkAvailabilityQuery = "SELECT quantity FROM soldmaterials WHERE name = ?";
+        try (Connection connection = MyJDBC.getConnection()) {
+            String checkAvailabilityQuery = "SELECT soldquantity FROM materialsforsales WHERE name = ?";
             try (PreparedStatement checkStmt = connection.prepareStatement(checkAvailabilityQuery)) {
                 checkStmt.setString(1, materialName);
                 ResultSet resultSet = checkStmt.executeQuery();
                 if (resultSet.next()) {
-                    int availableQuantity = resultSet.getInt("quantity");
-                    String insertQuery = "INSERT INTO deliveredmaterials (name, quantity) VALUES (?, ?)";
-                    try (PreparedStatement insertStmt = connection.prepareStatement(insertQuery)) {
-                        insertStmt.setString(1, materialName);
-                        insertStmt.setInt(2, availableQuantity);
-                        insertStmt.executeUpdate();
-                        System.out.println("Order placed successfully for " + availableQuantity + " units of " + materialName);
+                    int soldQuantity = resultSet.getInt("soldquantity");
+                    if (soldQuantity == 0) {
+                        System.out.println("The material is not available for delivery.");
+                    } else {
+                        String insertQuery = "INSERT INTO deliveredmaterials (name, quantity) VALUES (?, ?)";
+                        try (PreparedStatement insertStmt = connection.prepareStatement(insertQuery)) {
+                            insertStmt.setString(1, materialName);
+                            insertStmt.setInt(2, soldQuantity);
+                            insertStmt.executeUpdate();
+                            System.out.println("Delivered material added successfully with " + soldQuantity + " units of " + materialName);
+                        }
+                        String updateQuery = "UPDATE materialsforsales SET soldquantity = 0 WHERE name = ?";
+                        try (PreparedStatement updateStmt = connection.prepareStatement(updateQuery)) {
+                            updateStmt.setString(1, materialName);
+                            updateStmt.executeUpdate();
+                        }
                     }
                 } else {
-                    System.out.println("The material is not available for delivering.");
+                    System.out.println("The material is not available for delivery.");
                 }
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
+
+
     public static void printTotalIncome() {
         double totalIncome = 0.0;
         try (Connection connection = MyJDBC.getConnection();) {
@@ -385,7 +396,7 @@ public class DatabaseManager {
                 int soldQuantity = resultSet.getInt("soldquantity");
                 System.out.printf("%-5d%-15s%-12s%-10.2f%-12d\n", id, name, dateAdded, price, soldQuantity);
             } else {
-                System.out.println("No material with sold quantity greater than 0 found.");
+                System.out.println("No material found.");
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -393,7 +404,7 @@ public class DatabaseManager {
     }
     public static void sleep() {
         try {
-            Thread.sleep(3000);
+            Thread.sleep(2000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

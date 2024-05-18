@@ -16,16 +16,14 @@ public class Delivery extends User{
             System.out.println();
             System.out.println("Please choose one of the options below , if you want to exit choose number 5 ");
             System.out.println("1.Show list of materials for delivery\n2. Show list of the delivered materials \n3.Deliver order \n4.Show my income\n5.Exit");
-            choice = getChoice();
+            choice = scanner.nextInt();
+            getChoice(choice);
             manager.sleep();
         }while(choice!=5);
     }
-    public int getChoice(){
-        int choice = 0 ;
+    public int getChoice(int choosen){
         DatabaseManager manager = new DatabaseManager();
-        do{
-            choice = scanner.nextInt();
-            switch (choice){
+            switch (choosen){
                 case 1 :
                     System.out.println("Here is the list of materials for delivering:");
                     manager.listSoldMaterials();
@@ -35,7 +33,9 @@ public class Delivery extends User{
                     manager.listOfDeliveredMaterials();
                     break;
                 case 3 :
+                    manager.listSoldMaterials();
                     System.out.println("Enter the name");
+                    scanner.nextLine();
                     String materialName = scanner.nextLine();
                     manager.DeliveredMaterials(materialName);
                     break;
@@ -50,32 +50,7 @@ public class Delivery extends User{
                 default:
                     System.out.println("Invalid option. Please choose again.");
                     break;
-            }
-        }while(choice<=1 || choice>4);
-        return choice;
+            };
+        return 0;
     }
-    public void addMaterial(String name , int price , int quantity, boolean sold){
-        String sql = "INSERT INTO materialsforsales (name , date_added , price , quantity , sold ) VALUES (? , ? , ?, ? , ? ) " ;
-        try(Connection con = MyJDBC.getConnection();){
-            PreparedStatement preparedStatement = con.prepareStatement(sql);
-            preparedStatement.setString(1,name);
-            Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-            preparedStatement.setTimestamp(2, timestamp);
-            preparedStatement.setInt(3, price);
-            preparedStatement.setInt(4, quantity);
-            preparedStatement.setBoolean(5 , sold);
-            int affectedRows = preparedStatement.executeUpdate();
-            if(affectedRows>0){
-                System.out.println("Materials added successfully");
-            }
-            else {
-                System.out.println("Failed to add material ");
-            }
-        }catch (SQLException e){
-            System.out.println("Database connection error");
-        }
-
-    }
-
-
 }

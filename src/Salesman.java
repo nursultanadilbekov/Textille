@@ -1,10 +1,5 @@
-import java.sql.PreparedStatement;
 import java.util.Scanner;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+
 
 public class Salesman extends User{
     Scanner scanner = new Scanner(System.in);

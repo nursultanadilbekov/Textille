@@ -3,7 +3,9 @@ import java.util.Scanner;
 public class Main {
     private static DatabaseManager dbManager;
     public static void main(String[] args) {
-
+        login();
+    }
+    public static void login(){
         try {
             dbManager = new DatabaseManager();
             while (true) {
@@ -28,9 +30,4 @@ public class Main {
             e.printStackTrace();
         }
     }
-
-
-
-
-
 }

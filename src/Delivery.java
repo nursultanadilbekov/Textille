@@ -1,6 +1,3 @@
-import javax.xml.crypto.Data;
-import java.sql.*;
-import java.time.LocalDateTime;
 import java.util.Scanner;
 
 public class Delivery extends User{
